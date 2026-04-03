@@ -90,6 +90,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helveti
 .cart-note textarea{width:100%;padding:10px;border:1px solid var(--gray-10);border-radius:var(--radius);font-size:13px;resize:vertical;min-height:60px}
 .cart-submit{width:100%;margin-top:16px;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
 .cart-submit:hover{background:var(--blue-h)}
+.cart-save{width:100%;margin-top:8px;padding:12px;background:var(--gray-05);color:var(--navy);border:1px solid var(--gray-10);border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.cart-save:hover{border-color:var(--blue);color:var(--blue)}
+.cart-save.saved{background:var(--green);color:#fff;border-color:var(--green)}
+.saved-banner{display:none;padding:8px 16px;background:#e8f5e1;color:var(--green-d);font-size:12px;font-weight:600;text-align:center;border-radius:var(--radius);margin-bottom:12px}
+.saved-banner.show{display:block}
 .cart-empty{text-align:center;padding:40px 0;color:var(--gray-40)}
 
 /* CONFIRM */
@@ -119,6 +124,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helveti
 <input type="email" id="client-email" placeholder="Votre adresse email">
 <input type="tel" id="client-tel" placeholder="Téléphone (facultatif)">
 <button onclick="enterCatalog()">Accéder au catalogue</button>
+<div id="saved-cart-info" style="display:none;margin-top:12px;padding:10px;background:#e8f5e1;border-radius:8px;font-size:12px;color:var(--green-d);font-weight:600">&#128722; Un panier sauvegardé a été retrouvé. Connectez-vous pour le récupérer.</div>
 <div id="login-err" style="color:var(--red);font-size:12px;margin-top:8px"></div>
 </div>
 </div>
@@ -167,7 +173,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helveti
 <label>Notes / instructions</label>
 <textarea id="cart-notes" placeholder="Conditions de livraison, remarques..."></textarea>
 </div>
+<div class="saved-banner" id="saved-banner">Panier sauvegardé !</div>
 <button class="cart-submit" onclick="submitOrder()">&#9993; Envoyer la commande</button>
+<button class="cart-save" id="btn-save-cart" onclick="saveCart()">&#128190; Sauvegarder le panier</button>
 </div>
 </div>
 
@@ -205,14 +213,20 @@ function enterCatalog(){
   document.getElementById('client-badge').textContent = name;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
-  loadCatalog();
+  loadCatalog().then(function(){
+    // Restore saved cart after catalog is loaded
+    if(loadSavedCart()){
+      updateCartCount();
+      renderCatalog();
+    }
+  });
 }
 
 // ========= CATALOG =========
 async function loadCatalog(){
   try{
     var res = await fetch(SUPABASE_URL+'/rest/v1/produits?select=*&order=category,name&dispo=neq.RUPTURE',{
-      headers:{'apikey':SUPABASE_KEY}
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
     });
     if(!res.ok){console.error('Catalog error:',res.status);return}
     catalog = await res.json();
@@ -345,13 +359,16 @@ function renderCart(){
     return;
   }
   var totalHT = 0;
+  var totalBt = 0;
   container.innerHTML = cart.map(function(item){
-    var lineTotal = item.qty * item.prix_ht;
+    var nbBt = item.qty * item.pcb;
+    var lineTotal = nbBt * item.prix_ht;
     totalHT += lineTotal;
+    totalBt += nbBt;
     return '<div class="cart-item">'+
       '<div class="ci-info">'+
         '<div class="ci-name">'+esc(item.name)+'</div>'+
-        '<div class="ci-detail">'+esc(item.category)+' — '+item.prix_ht.toFixed(2)+' &euro; HT/u &times; '+item.pcb+' bt/colis</div>'+
+        '<div class="ci-detail">'+esc(item.category)+' — '+item.qty+' colis &times; '+item.pcb+' bt = <b>'+nbBt+' bt</b> &times; '+item.prix_ht.toFixed(2)+' &euro; HT</div>'+
       '</div>'+
       '<div class="ci-qty">'+
         '<button onclick="cartQty('+item.id+',-1)">-</button>'+
@@ -363,7 +380,7 @@ function renderCart(){
     '</div>';
   }).join('');
   document.getElementById('cart-total').style.display = 'flex';
-  document.getElementById('cart-total-val').textContent = totalHT.toFixed(2)+' €';
+  document.getElementById('cart-total-val').innerHTML = totalHT.toFixed(2)+' &euro; <small style="font-size:12px;font-weight:400;color:var(--gray-40)">('+totalBt+' bouteilles)</small>';
 }
 
 function cartQty(id,delta){
@@ -387,13 +404,18 @@ function submitOrder(){
   var notes = document.getElementById('cart-notes').value.trim();
   // Build order text
   var totalHT = 0;
+  var totalBtCmd = 0;
+  var totalColis = 0;
   var lines = cart.map(function(item,i){
-    var lt = item.qty * item.prix_ht;
+    var nbBt = item.qty * item.pcb;
+    var lt = nbBt * item.prix_ht;
     totalHT += lt;
+    totalBtCmd += nbBt;
+    totalColis += item.qty;
     return (i+1)+'. '+item.name+' ('+item.category+')'+
       '\n   Réf: '+(item.ref||'-')+' | Vol: '+(item.vol||'-')+'cl | TAV: '+(item.tav||'-')+'%'+
-      '\n   HDHT: '+(item.hdht||0).toFixed(2)+'€ | Droits: '+(item.droits||0).toFixed(4)+'€ | CSS: '+(item.css||0).toFixed(2)+'€ | HT: '+item.prix_ht.toFixed(2)+'€'+
-      '\n   Qté: '+item.qty+' colis (x'+item.pcb+' bt) | Total HT: '+lt.toFixed(2)+'€';
+      '\n   HDHT: '+(item.hdht||0).toFixed(2)+'€ | Droits: '+(item.droits||0).toFixed(4)+'€ | CSS: '+(item.css||0).toFixed(2)+'€ | HT/bt: '+item.prix_ht.toFixed(2)+'€'+
+      '\n   Qté: '+item.qty+' colis x '+item.pcb+' bt = '+nbBt+' bouteilles | Total HT: '+lt.toFixed(2)+'€';
   });
   var subject = 'Commande - '+clientInfo.name+' - '+new Date().toLocaleDateString('fr-FR');
   var body = '=== COMMANDE FREE SPIRITS DISTRIBUTION ===\n\n'+
@@ -406,7 +428,8 @@ function submitOrder(){
     '--- TOTAL ---\n'+
     'Total HT: '+totalHT.toFixed(2)+' €\n'+
     'Nombre de références: '+cart.length+'\n'+
-    'Nombre de colis: '+cart.reduce(function(s,c){return s+c.qty},0)+'\n\n'+
+    'Nombre de colis: '+totalColis+'\n'+
+    'Nombre de bouteilles: '+totalBtCmd+'\n\n'+
     (notes?'--- NOTES ---\n'+notes+'\n\n':'')+
     '---\nCommande passée via le catalogue en ligne Free Spirits Distribution';
 
@@ -416,6 +439,9 @@ function submitOrder(){
     '&cc='+encodeURIComponent(clientInfo.email);
 
   window.location.href = mailto;
+
+  // Clear saved cart after sending
+  clearSavedCart();
 
   // Show confirmation
   setTimeout(function(){
@@ -435,8 +461,72 @@ function resetOrder(){
   document.getElementById('app').querySelector('.nav').style.display='flex';
   document.getElementById('app').querySelector('.filters').style.display='flex';
   document.getElementById('catalog-grid').style.display='grid';
+  clearSavedCart();
   renderCatalog();
 }
+
+// ========= SAUVEGARDE PANIER =========
+function saveCart(){
+  try{
+    var data = {
+      cart: cart,
+      notes: document.getElementById('cart-notes').value||'',
+      clientInfo: clientInfo,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('fsd_order_cart', JSON.stringify(data));
+    // Visual feedback
+    var banner = document.getElementById('saved-banner');
+    banner.className = 'saved-banner show';
+    var btn = document.getElementById('btn-save-cart');
+    btn.className = 'cart-save saved';
+    btn.innerHTML = '&#10003; Sauvegardé !';
+    setTimeout(function(){
+      banner.className = 'saved-banner';
+      btn.className = 'cart-save';
+      btn.innerHTML = '&#128190; Sauvegarder le panier';
+    }, 2000);
+  }catch(e){console.error('Save cart error:', e)}
+}
+
+function loadSavedCart(){
+  try{
+    var saved = localStorage.getItem('fsd_order_cart');
+    if(!saved) return false;
+    var data = JSON.parse(saved);
+    if(!data.cart || !data.cart.length) return false;
+    cart = data.cart;
+    if(data.notes) document.getElementById('cart-notes').value = data.notes;
+    updateCartCount();
+    renderCatalog();
+    return true;
+  }catch(e){console.error('Load cart error:', e); return false}
+}
+
+function clearSavedCart(){
+  try{ localStorage.removeItem('fsd_order_cart'); }catch(e){}
+}
+
+function checkSavedCart(){
+  try{
+    var saved = localStorage.getItem('fsd_order_cart');
+    if(saved){
+      var data = JSON.parse(saved);
+      if(data.cart && data.cart.length > 0){
+        document.getElementById('saved-cart-info').style.display = 'block';
+        // Pre-fill client info if available
+        if(data.clientInfo){
+          if(data.clientInfo.name) document.getElementById('client-name').value = data.clientInfo.name;
+          if(data.clientInfo.email) document.getElementById('client-email').value = data.clientInfo.email;
+          if(data.clientInfo.tel) document.getElementById('client-tel').value = data.clientInfo.tel;
+        }
+      }
+    }
+  }catch(e){}
+}
+
+// Check on page load
+checkSavedCart();
 </script>
 </body>
 </html>
