@@ -67,6 +67,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helveti
 .product-card:hover{box-shadow:0 4px 16px rgba(44,36,32,.15)}
 .product-card.indisponible{border-left-color:var(--orange);opacity:.75}
 .product-card.rupture{border-left-color:var(--red);opacity:.5;pointer-events:none}
+/* PRODUCT IMAGE (homogène) */
+.pc-img{position:relative;width:100%;height:170px;background:var(--gray-05);border:1px solid var(--gray-10);border-radius:3px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:2px}
+.pc-img>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:12px;background:#fff}
+.pc-img-ph{display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;padding:10px}
+.pc-img-ph .drop{width:22px;height:22px;background:var(--blue);border-radius:50% 50% 50% 0;transform:rotate(135deg);opacity:.85}
+.pc-img-ph .pp{font-family:'Archivo',sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--gray-40);font-weight:700;max-width:200px}
 .pc-header{display:flex;justify-content:space-between;align-items:start;gap:8px}
 .pc-name{font-weight:700;font-size:15px;color:var(--navy);flex:1}
 .pc-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
@@ -525,6 +531,145 @@ async function loadCatalog(){
   }catch(e){console.error('Catalog fetch error:',e)}
 }
 
+// Visuels produits : renseignez p.image_url en base (Supabase), OU ajoutez ici une
+// correspondance { nomNormalisé : 'https://.../image.jpg' }. Sans correspondance, un
+// visuel de repli homogène (goutte cuivre + catégorie) s'affiche automatiquement.
+var PRODUCT_IMAGES = {
+  "bmsignature19ansfutunique": "https://free-spirits.fr/wp-content/uploads/2025/11/BM-SIGNATURE_19ans-400x500-1.jpg",
+  "liqueurdefleurdesureau": "https://free-spirits.fr/wp-content/uploads/2026/01/FSD_MICLO_Liqueur-fleur-de-sureau_400x500.png",
+  "manaotahitimanaorhumvieuxbio": "https://free-spirits.fr/wp-content/uploads/2026/01/FSD_MANAO_Rhum-Vieux-Bio_400x500.png",
+  "singlemalttourbe": "https://free-spirits.fr/wp-content/uploads/2025/11/ESCAGNAN_Single-Malt-Tourbe_400x500.jpg",
+  "singlemaltwhisky": "https://free-spirits.fr/wp-content/uploads/2025/11/ESCAGNAN_Single-Malt_400x500.jpg",
+  "abstraktvodka": "https://free-spirits.fr/wp-content/uploads/2023/12/ABSTRAKT-VODKA_ORIGINAL_400X500.jpg",
+  "affinagemerlot": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Merlot_400x500.jpg",
+  "affinagesauvignon": "https://free-spirits.fr/wp-content/uploads/2025/10/A.ROBOREL-DE-CLIMENS_SAUVIGNON_400x500.jpg",
+  "affinagesavagnincuveeephemere": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Savagnin_400x500.jpg",
+  "affinagesemillon": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Semillon_400x500.jpg",
+  "affinagetourbecuveeephemere": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Tourbe_400x500-1.jpg",
+  "affinagevermentinucuveeephemere": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Vermentinu_400x500.jpg",
+  "barelegsbattleaxe": "https://free-spirits.fr/wp-content/uploads/2025/12/FSD_ISLAY-BOYS_BARELEGS-BATTLE-AXE_400x500.png",
+  "barelegsislaysinglemalt": "https://free-spirits.fr/wp-content/uploads/2025/12/FSD_ISLAY-BOYS_BARELEGS-ISLAY_400x500.png",
+  "bmsignature12ans": "https://free-spirits.fr/wp-content/uploads/2024/07/ROUGET-DE-LISLE_BM-SIGNATURE-12-ANS_400x500.jpg",
+  "bmsignature15ans": "https://free-spirits.fr/wp-content/uploads/2024/09/ROUGET-DE-LISLE_BM-SIGNATURE-15-ANS_400x500.jpg",
+  "bmsignature5ans": "https://free-spirits.fr/wp-content/uploads/2024/07/ROUGET-DE-LISLE_BM-SIGNATURE-5-ANS_400x500.jpg",
+  "bmsignature8ans": "https://free-spirits.fr/wp-content/uploads/2024/07/ROUGET-DE-LISLE_BM-SIGNATURE-8-ANS_400x500.jpg",
+  "bmsignaturefumeautuye": "https://free-spirits.fr/wp-content/uploads/2024/07/ROUGET-DE-LISLE_BM-SIGNATURE-FUME-TUYE_400x500.jpg",
+  "bmsignaturegin": "https://free-spirits.fr/wp-content/uploads/2024/09/ROUGET-DE-LISLE_BM-SIGNATURE-GIN_400x500.jpg",
+  "bmsignaturevodkaherbedebison": "https://free-spirits.fr/wp-content/uploads/2024/09/ROUGET-DE-LISLE_BM-SIGNATURE-VODKA-BISON_400x500.jpg",
+  "brousse": "https://free-spirits.fr/wp-content/uploads/2024/09/FSD_LANDAs_Brousse_400x500_BD-1.jpg",
+  "cachacablanchebresil": "https://free-spirits.fr/wp-content/uploads/2022/09/OPPORTUNE_CACHACA_400x500.png",
+  "cerisesaleaudevie": "https://free-spirits.fr/wp-content/uploads/2020/05/MICLO_cerises-400x500-1.jpg",
+  "cerisessemiconfitesaleaudevie": "https://free-spirits.fr/wp-content/uploads/2021/09/MICLO_cerises-semi-confites_400x500.png",
+  "coffret3whiskiessinglemalt": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Coffret-3x20cl_400x500.jpg",
+  "duospicedrum": "https://free-spirits.fr/wp-content/uploads/2023/09/BREWDOG_DUO-RUM-SPICED_400X500.jpg",
+  "duospicedrumwithcaramelizedpineapple": "https://free-spirits.fr/wp-content/uploads/2023/09/BREWDOG_DUO-RUM_PINEAPPLE_400X500.jpg",
+  "flatnosebarrelrhumfinish": "https://free-spirits.fr/wp-content/uploads/2025/12/FSD_ISLAY-BOYS_FLATENOSE-RUM-BARREL-FINISH_400x500.png",
+  "flatnoseblend": "https://free-spirits.fr/wp-content/uploads/2025/12/FSD_ISLAY-BOYS_FLATENOSE-BLEND_400x500-1.png",
+  "flatnosepeatedblendedmalt": "https://free-spirits.fr/wp-content/uploads/2025/12/FSD_ISLAY-BOYS_FLATENOSE-PEATED-MALT_400x500.png",
+  "framboisesauvagecoeurdechauffe": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Framboise-Sauvage-Coeur-de-Chauffe-70cl_HD-400x500.jpg",
+  "framboisesauvagegrandereserve": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Framboise-Sauvage-Grande-Reserve-BD_400x500.jpg",
+  "ginout": "https://free-spirits.fr/wp-content/uploads/2021/10/GINOUT_PACKSHOT_400x500.png",
+  "kirschvieuxgrandereserve": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Kirsch-vieux-Grande-Reserve-BD_400x500.jpg",
+  "leblendbyarc": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Le-Blend_400x500.jpg",
+  "leblendtourbebyarc": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_Le-Blend-Tourbe_400x500.jpg",
+  "lesbonhommes": "https://free-spirits.fr/wp-content/uploads/2022/08/ESCAGNAN_MOONSHINE-LES-BONHOMMES_400X400-DET.png",
+  "liqueurdeplantes": "https://free-spirits.fr/wp-content/uploads/2025/03/Liqueur-de-Plantes-70cl-G.-Miclo-400x400.jpg",
+  "lonewolfmexicanlimecactus": "https://free-spirits.fr/wp-content/uploads/2023/09/BREWDOG_LONEWOLF_CACTUS-AND-LIME_400X500.jpg",
+  "lonewolforiginaljunipergin": "https://free-spirits.fr/wp-content/uploads/2023/09/BREWDOG_LONEWOLF-ORIGINAL_400X500.jpg",
+  "manaotahitimanaorhumblancamphore": "https://free-spirits.fr/wp-content/uploads/2024/09/MANAO_AMPHORE_400X500.png",
+  "manaotahitimanaorhumblancbio": "https://free-spirits.fr/wp-content/uploads/2019/04/201803-FreeSpirit-Manao-Blanc-sRVB72dpi10-400x500px.jpg",
+  "manaotahitimanaorhumblancrangiroa": "https://free-spirits.fr/wp-content/uploads/2022/02/MANAO_RANGIROA_400X500-2.png",
+  "manaorhumesbbio": "https://free-spirits.fr/wp-content/uploads/2019/04/201803-FreeSpirit-Manao-Paille-sRVB72dpi10-400x500px.jpg",
+  "marcgewurztramineraocgrandereserve": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Marc-Alsace-Gewurztraminer-Grande-Reserve-BD_400x500.jpg",
+  "micloginforestier": "https://free-spirits.fr/wp-content/uploads/2020/03/MICLO_gin-forestier-400x500.jpg",
+  "miclogintraditionnel": "https://free-spirits.fr/wp-content/uploads/2020/03/MICLO_gin-traditionnel-400x500.jpg",
+  "mirabellecoeurdechauffe": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Mirabelle-Coeur-de-Chauffe-70cl_400x500.jpg",
+  "mirabellegrandereserve": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Mirabelle-Grande-Reserve-BD_400x500.jpg",
+  "moyssou2020": "https://free-spirits.fr/wp-content/uploads/2024/09/FSD_LA-PEZE_MOYSSOU-2020_400x500.jpg",
+  "moyssou2021": "https://free-spirits.fr/wp-content/uploads/2025/09/LA-PEZE_MOYSSOU-2021_400x500.jpg",
+  "pictitribe": "https://free-spirits.fr/wp-content/uploads/2025/12/FSD_ISLAY-ALES_PICTO-TRIBE_400x500.png",
+  "poirewilliamscoeurdechauffe": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Poire-Williams-Coeur-de-Chauffe-70cl_400x500.jpg",
+  "poirewilliamsgrandereserve": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Poire-Williams-Grande-Reserve-BD_400x500.jpg",
+  "popcorn": "https://free-spirits.fr/wp-content/uploads/2023/03/ESCAGNAN_MOONSHINE-POP-CORN_400X400-DET.png",
+  "rhumagricoleambreaocmartinique": "https://free-spirits.fr/wp-content/uploads/2022/09/OPPORTUNE_AMBRE_400x500.png",
+  "rhumagricoleblanc": "https://free-spirits.fr/wp-content/uploads/2022/09/OPPORTUNE_BLANC_400x500.png",
+  "rhumagricolevsop": "https://free-spirits.fr/wp-content/uploads/2022/09/OPPORTUNE_VSOP.png",
+  "rhumagricolexoaocmartinique": "https://free-spirits.fr/wp-content/uploads/2022/09/OPPORTUNE_XO_400x500.png",
+  "rhumcuveechabinedoree": "https://free-spirits.fr/wp-content/uploads/2022/09/OPPORTUNE_CHABINE-DOREE_400x500.png",
+  "rhumguatemala": "https://free-spirits.fr/wp-content/uploads/2022/10/OPPORTUNE_GUATEMALA_400x500.png",
+  "rhumpanama": "https://free-spirits.fr/wp-content/uploads/2022/10/OPPORTUNE_PANAMA_400x500.png",
+  "rhumpanamaguatemalanicaragua": "https://free-spirits.fr/wp-content/uploads/2022/09/OPPORTUNE_PNG_400x500.png",
+  "roborumaffinagebanyuls": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_ROBO-RUM_Banuyls_400x500.jpg",
+  "roborumpuremelasse": "https://free-spirits.fr/wp-content/uploads/2025/11/ARC_ROBO-RUM_Pure-Melasse_400x500.jpg",
+  "roborumsingleestate": "https://free-spirits.fr/wp-content/uploads/2025/10/ARC_ROBO-RUM_Single-Estate_400x500.jpg",
+  "ronbodega6yearsold": "https://free-spirits.fr/wp-content/uploads/2025/09/BREWDOG-DISTILLING-CO_RON-BODEGA-6-YO_400x500.jpg",
+  "saugane": "https://free-spirits.fr/wp-content/uploads/2024/09/FSD_LANDAs_Saugane_400x500_BD.jpg",
+  "vieilleprune": "https://free-spirits.fr/wp-content/uploads/2022/08/escagnan-eau-de-vie-prune-400_500.png",
+  "vieilleprunegrandereserve": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Vieillie-prune-Grande-Reserve-BD_400x500.jpg",
+  "vilanovaargile": "https://free-spirits.fr/wp-content/uploads/2025/09/CASTAN_ARGILE_400x500.jpg",
+  "vilanovaberbie": "https://free-spirits.fr/wp-content/uploads/2025/09/CASTAN_BERBIE_400x500.jpg",
+  "vilanovagilbertsignature1": "https://free-spirits.fr/wp-content/uploads/2025/09/CASTAN_GILBERT-01_400x500.jpg",
+  "vilanovagost": "https://free-spirits.fr/wp-content/uploads/2020/03/CASTAN_GOST_400x500.jpg",
+  "vilanovaroja": "https://free-spirits.fr/wp-content/uploads/2020/03/CASTAN_ROJA_400x500.jpg",
+  "vilanovashed1": "https://free-spirits.fr/wp-content/uploads/2025/09/CASTAN_SHED-01_400x500.jpg",
+  "vilanovaterrocita": "https://free-spirits.fr/wp-content/uploads/2025/10/CASTAN_TERROCITA_400x500.jpg",
+  "vindetahitiblancdecorail": "https://free-spirits.fr/wp-content/uploads/2019/03/VIN-DE-TAHITI_BLANC-DE-CORAIL_400x500.jpg",
+  "vindetahitiblancmoelleuxmonamona": "https://free-spirits.fr/wp-content/uploads/2019/03/VIN-DE-TAHITI_MONA-MONA-1000X1000-400x400.jpg",
+  "vindetahiticlosdurecif": "https://free-spirits.fr/wp-content/uploads/2019/03/FSD_VIN-DE-TAHITI_Clos-Du-Recif_400x500.jpg",
+  "vindetahitirosenacarat": "https://free-spirits.fr/wp-content/uploads/2019/03/VIN-DE-TAHITI_ROSE-NACARAT_400x500.jpg",
+  "welcheswhiskyalsaciensinglemaltcoffret3whiskies": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_Welche-s-Whisky-coffret-20clx3-400x500-1.jpg",
+  "welcheswhiskyalsaciensinglemaltfaudeyfume": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_WELCHE-FAUDEY-FUME_400X500-1.jpg",
+  "welcheswhiskyalsaciensinglemaltkalouivieillienfutdebourgogne": "https://free-spirits.fr/wp-content/uploads/2021/09/MICLO_WELCHE-KALOUI-BOURGOGNE_400X500-1.jpg",
+  "welcheswhiskyalsaciensinglemaltnaurmatourbe": "https://free-spirits.fr/wp-content/uploads/2019/08/iPiccy-img-6.jpg",
+  "welcheswhiskyalsaciensinglemaltvorvonevieillienfutdesauternes": "https://free-spirits.fr/wp-content/uploads/2019/08/MICLO_WELCHE-VORVONE-SAUTERNE_400X500-1.jpg",
+  "welcheswhiskyalsaciensmallbatchcherrycask9": "https://free-spirits.fr/wp-content/uploads/2025/10/MICLO_WELCHE-Small-batch-cherry-cask-9_400x500.jpg",
+  "welcheswhiskyalsaciencuveedesgrandspalais9": "https://free-spirits.fr/wp-content/uploads/2025/10/MICLO_WELCHE-CUVEE-DES-GRANDS-PALAIS-9_400x500.jpg",
+  "zealotsheart": "https://free-spirits.fr/wp-content/uploads/2020/10/BREWDOG-DISTILLING_Zealot-s-Heart-400x500-1.jpg",
+  "500cutscherryanddarkchocolate": "https://free-spirits.fr/wp-content/uploads/2022/03/BREWDOG-500-CUTS-CHERRY-AND-DARK-CHOCOLATE.png",
+  "500cutscoconutandvanilla": "https://free-spirits.fr/wp-content/uploads/2022/03/BREWDOG-500-CUTS-COCONUT-AND-VANILLA.png",
+  "500cutshandmadespiced": "https://free-spirits.fr/wp-content/uploads/2023/03/BREWDOG_500-Cuts-1.png",
+  "500cutspineappleandmango": "https://free-spirits.fr/wp-content/uploads/2022/03/BREWDOG-500-CUTS-PINEAPPLE-AND-MANGO.png",
+  "barelegshighlandsinglemalt": "https://free-spirits.fr/wp-content/uploads/2025/12/FSD_ISLAY-BOYS_BARELEGS-HIGHLAND_400x500.png",
+  "bmsignature21ansfutunique": "https://free-spirits.fr/wp-content/uploads/2024/11/ROUGET-DE-LISLE_BM_-SIGNATURE-21-ANS400x500.jpg",
+  "cavalcade": "https://free-spirits.fr/wp-content/uploads/2024/02/ESCAGNAN_CAVALCADE_400X500.jpg",
+  "fivehundredcuts": "https://free-spirits.fr/wp-content/uploads/2020/10/BREWDOG-DISTILLING_Five-Hundred-Cuts-400x500-1.jpg",
+  "inugamishochu": "https://free-spirits.fr/wp-content/uploads/2020/10/BREWDOG-DISTILLING_Inugami-Shochu-400x500-1.jpg",
+  "lonewolfcloudylemon": "https://free-spirits.fr/wp-content/uploads/2023/03/BREWDOG_Cloudy-Lemon_400x500.jpg",
+  "lonewolfgunpowder": "https://free-spirits.fr/wp-content/uploads/2020/10/BREWDOG-DISTILLING_Lonewolf-Gunpowder-400x500-1.jpg",
+  "lonewolfpeachpassionfruit": "https://free-spirits.fr/wp-content/uploads/2021/06/BREWDOG-DISTILLING_Lonewolf-Peach-Passion-Fruit-400x500-1.jpg",
+  "manaotahitimanaorhumblancbiomarquises": "https://free-spirits.fr/wp-content/uploads/2025/03/MANAO_Marquises_400x500.jpg",
+  "poireprisonniere": "https://free-spirits.fr/wp-content/uploads/2020/11/MICLO_poire-prisonniere-400x500-ok.jpg",
+  "sevendayvodka": "https://free-spirits.fr/wp-content/uploads/2020/09/brewdog-vodka-7day.png",
+  "welcheswhiskyalsaciencherrycask2": "https://free-spirits.fr/wp-content/uploads/2019/12/MICLO_Welche-Cherry-cask2-400x500.jpg",
+  "welcheswhiskyalsaciencuveedesgrandspalais7": "https://free-spirits.fr/wp-content/uploads/2023/06/MICLO_Welche-Whisky_Grands-Palais-7-400x500.jpg",
+  "welcheswhiskyalsaciensinglecask6": "https://free-spirits.fr/wp-content/uploads/2021/10/MICLO_Welche-Whisky_Single-Cask-6_400x500.png",
+  "welcheswhiskyalsaciensmallbatch4whiskysinglemaltourbe": "https://free-spirits.fr/wp-content/uploads/2022/06/miclo-small-batch-4.png",
+  "welcheswhiskyalsaciensmallbatch5cherrycaskfinish": "https://free-spirits.fr/wp-content/uploads/2022/09/MICLO-Welche_s-Whisky-Small-Batch-5-Cherry-Cask-70cl-400x559.jpg",
+  "welcheswhiskyalsaciensmallbatch6whiskytourbecherrycaskfinish": "https://free-spirits.fr/wp-content/uploads/2023/11/MICLO_WELCHE_SMALL-BATCH-6_400X500.jpg",
+  "welcheswhiskyalsaciencherrycaskfinish7": "https://free-spirits.fr/wp-content/uploads/2024/10/MICLO_Welche_s-Whisky-Small-Batch-7-Cherry-Cask_400x500.jpg",
+  "welcheswhiskyalsaciencuveedesgrandspalais8": "https://free-spirits.fr/wp-content/uploads/2024/09/MICLO_Welche_s-Cuvee-Des-Grands-Palais-8_Maquette_HD-400x559.jpg",
+  "welcheswhiskyalsaciensmallbatch3cherrycaskfinish": "https://free-spirits.fr/wp-content/uploads/2020/11/MICLO_Welche-Cherry-cask3-400x500-1.jpg",
+  "welcheswhiskyalsaciensmallbatch8coterotie": "https://free-spirits.fr/wp-content/uploads/2025/04/MICLO_Welches-Small-Batch-Cherry-Cask-8.jpg"
+};
+var _imgKeys = Object.keys(PRODUCT_IMAGES);
+function normName(s){return (s||'').toString().toLowerCase().replace(/œ/g,'oe').replace(/æ/g,'ae').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'');}
+function resolveImg(p){
+  if(p.image_url||p.image||p.photo) return p.image_url||p.image||p.photo;
+  var k = normName(p.name); if(!k) return '';
+  if(PRODUCT_IMAGES[k]) return PRODUCT_IMAGES[k];
+  for(var i=0;i<_imgKeys.length;i++){
+    var ik=_imgKeys[i];
+    if(k.length>=10 && (ik.endsWith(k)||k.endsWith(ik))) return PRODUCT_IMAGES[ik];
+  }
+  return '';
+}
+function productImgHtml(p){
+  var url = resolveImg(p);
+  var ph = '<div class="pc-img-ph"><span class="drop"></span><span class="pp">'+esc(p.category||'Free Spirits')+'</span></div>';
+  var img = url ? '<img src="'+esc(url)+'" alt="'+esc(p.name)+'" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+  return '<div class="pc-img">'+ph+img+'</div>';
+}
+
 function renderCatalog(){
   var catF = document.getElementById('f-cat').value;
   var dispoF = document.getElementById('f-dispo').value;
@@ -547,6 +692,7 @@ function renderCatalog(){
     var badgeTxt = p.dispo==='DISPONIBLE'?'Disponible':p.dispo==='INDISPONIBLE'?'Indisponible':'Rupture';
     var inCart = cart.find(function(c){return c.id===p.id});
     return '<div class="product-card '+cls+'">'+
+      productImgHtml(p)+
       '<div class="pc-header">'+
         '<div class="pc-name">'+esc(p.name)+'</div>'+
         '<span class="pc-badge '+badgeCls+'">'+badgeTxt+'</span>'+
