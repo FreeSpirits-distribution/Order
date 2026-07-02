@@ -226,7 +226,7 @@ thead th{font-family:'Archivo',sans-serif;letter-spacing:.07em;background:#fff;b
 <li><strong>T&eacute;l&eacute;phone de l'&eacute;tablissement :</strong> 0X XX XX XX XX</li>
 <li><strong>T&eacute;l&eacute;phone de la personne qui r&eacute;ceptionne :</strong> 0X XX XX XX XX</li>
 </ul>
-<a class="mail-link" href="commande@free-spirits.fr?subject=Ouverture%20de%20compte%20-%20Nouveau%20client&body=Bonjour%2C%0A%0AJe%20souhaite%20ouvrir%20un%20compte%20client%20chez%20Free%20Spirits%20Distribution.%0A%0AVeuillez%20trouver%20ci-joint%20mon%20Kbis%20et%20RIB.%0A%0ANom%20de%20l%27enseigne%20%3A%20%0ARaison%20sociale%20%3A%20%0ASIRET%20%3A%20%0ATVA%20Intra%20%3A%20%0AAdresse%20de%20facturation%20%3A%20%0AAdresse%20de%20livraison%20%3A%20%0AHoraires%20et%20jours%20de%20livraison%20%3A%20%0AEmail%20pour%20facturation%20%3A%20%0AT%C3%A9l%C3%A9phone%20%C3%A9tablissement%20%3A%20%0AT%C3%A9l%C3%A9phone%20r%C3%A9ception%20%3A%20%0A%0ACordialement">&#9993; Envoyer mes documents par email</a>
+<a class="mail-link" href="mailto:commande@free-spirits.fr?subject=Ouverture%20de%20compte%20-%20Nouveau%20client&body=Bonjour%2C%0A%0AJe%20souhaite%20ouvrir%20un%20compte%20client%20chez%20Free%20Spirits%20Distribution.%0A%0AVeuillez%20trouver%20ci-joint%20mon%20Kbis%20et%20RIB.%0A%0ANom%20de%20l%27enseigne%20%3A%20%0ARaison%20sociale%20%3A%20%0ASIRET%20%3A%20%0ATVA%20Intra%20%3A%20%0AAdresse%20de%20facturation%20%3A%20%0AAdresse%20de%20livraison%20%3A%20%0AHoraires%20et%20jours%20de%20livraison%20%3A%20%0AEmail%20pour%20facturation%20%3A%20%0AT%C3%A9l%C3%A9phone%20%C3%A9tablissement%20%3A%20%0AT%C3%A9l%C3%A9phone%20r%C3%A9ception%20%3A%20%0A%0ACordialement">&#9993; Envoyer mes documents par email</a>
 </div>
 </div>
 
@@ -294,8 +294,8 @@ thead th{font-family:'Archivo',sans-serif;letter-spacing:.07em;background:#fff;b
 <!-- CONFIRMATION -->
 <div class="confirm-screen" id="confirm-screen">
 <div class="icon">&#10004;&#65039;</div>
-<h2>Commande envoy&eacute;e !</h2>
-<p>Votre commande a &eacute;t&eacute; transmise &agrave; l'&eacute;quipe Free Spirits Distribution. Vous recevrez une confirmation par email.</p>
+<h2>Derni&egrave;re &eacute;tape : envoyez l'email</h2>
+<p>Votre messagerie vient de s'ouvrir avec la commande pr&eacute;-remplie. V&eacute;rifiez les informations puis cliquez sur &laquo;&nbsp;Envoyer&nbsp;&raquo; dans votre messagerie pour finaliser. Sans cet envoi, la commande ne nous parvient pas.</p>
 <button onclick="resetOrder()">Nouvelle commande</button>
 </div>
 
@@ -312,7 +312,7 @@ let cart = [];
 let clientInfo = {name:'',email:'',tel:''};
 let authToken = null;
 
-function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+function esc(s){return s!=null&&s!==''?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):''}
 
 // ========= AUTH TABS =========
 function switchAuthTab(tab){
@@ -719,7 +719,7 @@ function renderCatalog(){
     if(catF && p.category!==catF) return false;
     if(dispoF && p.dispo!==dispoF) return false;
     if(prodF && getProducer(p)!==prodF) return false;
-    if(q && !p.name.toLowerCase().includes(q) && !(p.ref||'').toLowerCase().includes(q) && !p.category.toLowerCase().includes(q)) return false;
+    if(q && !(p.name||'').toLowerCase().includes(q) && !(p.ref||'').toLowerCase().includes(q) && !(p.category||'').toLowerCase().includes(q)) return false;
     return true;
   });
   filtered.sort(function(a,b){
@@ -746,10 +746,10 @@ function renderCatalog(){
       '</div>'+
       '<div class="pc-cat">'+esc(getProducer(p))+' · '+esc(p.category)+(p.ref?' — '+esc(p.ref):'')+'</div>'+
       '<div class="pc-details">'+
-        '<span>Vol. <b class="val">'+(p.vol||'-')+' cl</b></span>'+
-        '<span>TAV <b class="val">'+(p.tav||'-')+' %</b></span>'+
+        '<span>Vol. <b class="val">'+esc(p.vol||'-')+' cl</b></span>'+
+        '<span>TAV <b class="val">'+esc(p.tav||'-')+' %</b></span>'+
         '<span>Classif. <b class="val">'+esc(p.classif||'-')+'</b></span>'+
-        '<span>PCB <b class="val">'+p.pcb+' bt</b></span>'+
+        '<span>PCB <b class="val">'+esc(p.pcb)+' bt</b></span>'+
       '</div>'+
       '<div class="pc-prices" style="grid-template-columns:repeat(5,1fr);display:grid;gap:4px">'+
         '<div class="pc-price"><div class="label">HDHT</div><div class="amount" style="font-size:14px">'+((p.hdht||0).toFixed(2))+' <small>&euro;</small></div></div>'+
@@ -760,14 +760,14 @@ function renderCatalog(){
       '</div>'+
       '<div class="pc-order">'+
         '<div class="pc-qty">'+
-          '<button onclick="changeQty(this,-1,'+p.id+')">-</button>'+
-          '<input type="number" id="qty-'+p.id+'" value="'+(inCart?inCart.qty:0)+'" min="0" onchange="setQty('+p.id+',this.value)">'+
-          '<button onclick="changeQty(this,1,'+p.id+')">+</button>'+
+          '<button onclick="changeQty(this,-1,'+Number(p.id)+')">-</button>'+
+          '<input type="number" id="qty-'+Number(p.id)+'" value="'+(inCart?inCart.qty:0)+'" min="0" onchange="setQty('+Number(p.id)+',this.value)">'+
+          '<button onclick="changeQty(this,1,'+Number(p.id)+')">+</button>'+
         '</div>'+
-        '<span class="pc-pcb">x '+p.pcb+' bt/colis</span>'+
+        '<span class="pc-pcb">x '+esc(p.pcb)+' bt/colis</span>'+
         (p.dispo!=='INDISPONIBLE'?
-          '<button class="pc-add'+(inCart?' added':'')+'" onclick="addToCart('+p.id+')">'+(inCart?'&#10003; Ajouté':'+ Ajouter')+'</button>':
-          '<button class="pc-add" style="background:var(--orange)" onclick="addToCart('+p.id+')">&#9888; Indisponible</button>'
+          '<button class="pc-add'+(inCart?' added':'')+'" onclick="addToCart('+Number(p.id)+')">'+(inCart?'&#10003; Ajouté':'+ Ajouter')+'</button>':
+          '<button class="pc-add" style="background:var(--orange)" onclick="addToCart('+Number(p.id)+')">&#9888; Indisponible</button>'
         )+
       '</div>'+
     '</div>';
@@ -846,15 +846,15 @@ function renderCart(){
     return '<div class="cart-item">'+
       '<div class="ci-info">'+
         '<div class="ci-name">'+esc(item.name)+'</div>'+
-        '<div class="ci-detail">'+esc(item.category)+' — '+item.qty+' colis &times; '+item.pcb+' bt = <b>'+nbBt+' bt</b> &times; '+item.prix_ht.toFixed(2)+' &euro; HT</div>'+
+        '<div class="ci-detail">'+esc(item.category)+' — '+esc(item.qty)+' colis &times; '+esc(item.pcb)+' bt = <b>'+nbBt+' bt</b> &times; '+(Number(item.prix_ht)||0).toFixed(2)+' &euro; HT</div>'+
       '</div>'+
       '<div class="ci-qty">'+
-        '<button onclick="cartQty('+item.id+',-1)">-</button>'+
-        '<span>'+item.qty+'</span>'+
-        '<button onclick="cartQty('+item.id+',1)">+</button>'+
+        '<button onclick="cartQty('+Number(item.id)+',-1)">-</button>'+
+        '<span>'+esc(item.qty)+'</span>'+
+        '<button onclick="cartQty('+Number(item.id)+',1)">+</button>'+
       '</div>'+
       '<div class="ci-price">'+lineTotal.toFixed(2)+' &euro;</div>'+
-      '<button class="ci-del" onclick="removeFromCart('+item.id+')">&times;</button>'+
+      '<button class="ci-del" onclick="removeFromCart('+Number(item.id)+')">&times;</button>'+
     '</div>';
   }).join('');
   document.getElementById('cart-total').style.display = 'flex';
