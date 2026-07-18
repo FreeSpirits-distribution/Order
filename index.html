@@ -1132,5 +1132,15 @@ function clearSavedCart(){
 // ========= INIT — CHECK EXISTING SESSION =========
 checkSession();
 </script>
+<!-- PIED DE PAGE LEGAL -->
+<div style="text-align:center;padding:20px 12px 26px;font-size:12px;color:var(--gray-40)">
+<a href="mentions-legales.html" style="color:var(--gray-40)">Mentions l&eacute;gales &amp; CGU</a>
+&nbsp;&middot;&nbsp;
+<a id="link-cgv" href="#" target="_blank" rel="noopener" style="color:var(--gray-40)">Conditions g&eacute;n&eacute;rales de vente (PDF)</a>
+<div style="margin-top:6px">SAS Free Spirits Distribution &mdash; 53 rue de Montreuil, 75011 Paris &mdash; RCS Paris 841 787 385</div>
+</div>
+<script>
+document.getElementById('link-cgv').href=SUPABASE_URL+'/storage/v1/object/public/documents/CGV.pdf?v='+Date.now();
+</script>
 </body>
 </html>
