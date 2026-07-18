@@ -27,7 +27,7 @@ a{color:var(--copper)}
 <div class="wrap">
 <div class="logo"><img src="https://free-spirits.fr/wp-content/uploads/2019/02/FREE-SPIRITS-LOGO.png" alt="Free Spirits Distribution"></div><br>
 <a class="back" href="index.html">&larr; Retour au portail de commande</a>
-<div class="card">
+<div class="card" id="ml-card">
 <h1>Mentions légales</h1>
 
 <h2>Présentation du site — Informations légales</h2>
@@ -129,5 +129,14 @@ Free Spirits Distribution — <a href="mailto:info@free-spirits.fr">info@free-sp
 </div>
 <div class="footer">SAS Free Spirits Distribution — 53 rue de Montreuil, 75011 Paris — RCS Paris 841 787 385</div>
 </div>
+<script>
+(function(){
+var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRscHp4bmducGh4dXZvcGN4ZW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzAxNzAsImV4cCI6MjA5MzA0NjE3MH0.HjuNIqJ0J05dG7LnhJco5BV1epLZQrrJZK2Hfr4_fIs';
+fetch('https://dlpzxngnphxuvopcxenf.supabase.co/rest/v1/app_settings?key=eq.mentions_legales&select=value',{headers:{'apikey':K}})
+.then(function(r){return r.ok?r.json():[]})
+.then(function(a){if(a.length&&a[0].value){document.getElementById('ml-card').innerHTML=a[0].value}})
+.catch(function(){});
+})();
+</script>
 </body>
 </html>
