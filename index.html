@@ -260,6 +260,7 @@ thead th{font-family:'Archivo',sans-serif;letter-spacing:.07em;background:#fff;b
 <button class="nav-cart" onclick="openCart()">
 &#128722; Panier <span class="cart-count" id="cart-count">0</span>
 </button>
+<button class="nav-logout" onclick="openAccount()">Mon compte</button>
 <button class="nav-logout" onclick="doLogout()">D&eacute;connexion</button>
 </div>
 </div>
@@ -281,6 +282,22 @@ thead th{font-family:'Archivo',sans-serif;letter-spacing:.07em;background:#fff;b
 <div class="catalog" id="catalog-grid"></div>
 
 <!-- CART OVERLAY -->
+<!-- ACCOUNT MODAL -->
+<div id="account-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:2100;align-items:center;justify-content:center" onclick="closeAccount(event)">
+<div style="background:var(--card);border-radius:8px;max-width:420px;width:92vw;padding:24px" onclick="event.stopPropagation()">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h2 style="font-size:18px;color:var(--navy)">Mon compte</h2><button onclick="closeAccount()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-40)">&times;</button></div>
+<div style="font-size:13px;margin-bottom:16px"><span style="color:var(--gray-40)">Connect&eacute; en tant que</span><br><strong id="account-email"></strong></div>
+<div style="border-top:1px solid var(--gray-05);padding-top:14px">
+<h3 style="font-size:14px;color:var(--navy);margin-bottom:10px">Changer mon mot de passe</h3>
+<input type="password" id="acc-pwd1" placeholder="Nouveau mot de passe (6 caract. min)" style="width:100%;padding:10px;border:1px solid var(--gray-10);border-radius:6px;font-size:13px;margin-bottom:8px">
+<input type="password" id="acc-pwd2" placeholder="Confirmer le nouveau mot de passe" style="width:100%;padding:10px;border:1px solid var(--gray-10);border-radius:6px;font-size:13px;margin-bottom:10px">
+<div id="acc-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:6px"></div>
+<div id="acc-ok" style="color:var(--green);font-size:12px;min-height:16px;margin-bottom:6px"></div>
+<button id="btn-acc-pwd" onclick="changeMyPassword()" style="width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">Enregistrer le nouveau mot de passe</button>
+</div>
+</div>
+</div>
+
 <div class="cart-overlay" id="cart-overlay" onclick="closeCart(event)">
 <div class="cart-panel" onclick="event.stopPropagation()">
 <div class="cart-head">
@@ -523,6 +540,40 @@ function doLogout(){
   document.getElementById('login-email').value='';
   document.getElementById('login-pwd').value='';
   document.getElementById('login-err').textContent='';
+}
+
+// ========= MON COMPTE (changement de mot de passe) =========
+function openAccount(){
+  document.getElementById('account-email').textContent=(clientInfo&&clientInfo.email)||'';
+  document.getElementById('acc-pwd1').value='';document.getElementById('acc-pwd2').value='';
+  document.getElementById('acc-err').textContent='';document.getElementById('acc-ok').textContent='';
+  document.getElementById('account-overlay').style.display='flex';
+}
+function closeAccount(e){
+  if(e&&e.target&&e.target!==document.getElementById('account-overlay'))return;
+  document.getElementById('account-overlay').style.display='none';
+}
+async function changeMyPassword(){
+  var p1=document.getElementById('acc-pwd1').value;
+  var p2=document.getElementById('acc-pwd2').value;
+  var err=document.getElementById('acc-err');var ok=document.getElementById('acc-ok');
+  var btn=document.getElementById('btn-acc-pwd');
+  err.textContent='';ok.textContent='';
+  if(!p1||p1.length<6){err.textContent='Le mot de passe doit contenir au moins 6 caractères.';return}
+  if(p1!==p2){err.textContent='Les mots de passe ne correspondent pas.';return}
+  btn.disabled=true;btn.textContent='Enregistrement...';
+  try{
+    var res=await fetch(SUPABASE_URL+'/auth/v1/user',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+authToken},
+      body:JSON.stringify({password:p1})
+    });
+    var data=await res.json();
+    if(!res.ok)throw new Error(data.error_description||data.msg||'Erreur lors du changement de mot de passe');
+    ok.textContent='✓ Mot de passe modifié. Utilisez-le dès votre prochaine connexion.';
+    document.getElementById('acc-pwd1').value='';document.getElementById('acc-pwd2').value='';
+  }catch(e){err.textContent=e.message}
+  btn.disabled=false;btn.textContent='Enregistrer le nouveau mot de passe';
 }
 
 // ========= CATALOG =========
