@@ -243,6 +243,17 @@ thead th{font-family:'Archivo',sans-serif;letter-spacing:.07em;background:#fff;b
 </div>
 </div>
 
+<!-- WELCOME / CONFIRMATION D'INSCRIPTION -->
+<div id="welcome-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:1500;overflow-y:auto">
+<div style="max-width:640px;margin:0 auto;padding:36px 20px 60px;text-align:center">
+<div style="background:#fff;display:inline-block;padding:10px 22px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px"><img src="https://free-spirits.fr/wp-content/uploads/2019/02/FREE-SPIRITS-LOGO.png" alt="Free Spirits Distribution" style="height:54px;display:block"></div>
+<h2 style="color:var(--navy);font-size:22px;margin-bottom:8px">&#10003; Compte cr&eacute;&eacute; !</h2>
+<p id="welcome-sub" style="font-size:14px;color:var(--gray-40);margin-bottom:22px"></p>
+<div id="welcome-conditions" style="text-align:left"></div>
+<button id="welcome-btn" onclick="welcomeContinue()" style="margin-top:22px;width:100%;max-width:320px;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer"></button>
+</div>
+</div>
+
 <!-- LOADING -->
 <div class="loading-screen" id="loading-screen">
 <div class="spinner"></div>
@@ -416,11 +427,12 @@ async function doRegister(){
       // Create client profile
       await createClientProfile(data.access_token, data.user.id, name, email, tel);
       await loadClientProfile(data.access_token, data.user);
-      showApp();
+      btn.disabled=false;btn.textContent='Créer mon compte';
+      showWelcome(true);
     } else {
       // Email confirmation needed
-      ok.innerHTML = "&#10003; Compte créé ! Vérifiez votre boîte email pour confirmer votre adresse, puis connectez-vous.<br><br><strong>N'oubliez pas d'envoyer vos documents (Kbis + RIB) pour activer votre compte.</strong>";
       btn.disabled=false;btn.textContent='Créer mon compte';
+      showWelcome(false);
     }
   }catch(e){
     err.textContent=e.message;
@@ -436,7 +448,7 @@ async function doForgotPwd(){
     return;
   }
   try{
-    var res = await fetch(SUPABASE_URL+'/auth/v1/recover',{
+    var res = await fetch(SUPABASE_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent('https://freespirits-distribution.github.io/Order/'),{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY},
       body:JSON.stringify({email:email})
@@ -502,8 +514,44 @@ async function loadClientProfile(token, user){
   }
 }
 
+// ========= ECRAN DE BIENVENUE / CONFIRMATION =========
+var welcomeHasSession=false;
+function showWelcome(hasSession){
+  welcomeHasSession=hasSession;
+  var box=document.querySelector('#form-register .conditions-box');
+  document.getElementById('welcome-conditions').innerHTML=box?box.outerHTML:'';
+  document.getElementById('welcome-sub').textContent=hasSession
+    ?'Votre accès au catalogue est ouvert. Dernière étape pour pouvoir commander :'
+    :'Vérifiez votre boîte email pour confirmer votre adresse, puis connectez-vous. Dernière étape pour activer votre compte :';
+  document.getElementById('welcome-btn').textContent=hasSession?'Accéder au catalogue':'Retour à la connexion';
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('welcome-screen').style.display='block';
+  window.scrollTo(0,0);
+}
+async function welcomeContinue(){
+  document.getElementById('welcome-screen').style.display='none';
+  if(welcomeHasSession){await showApp()}
+  else{document.getElementById('auth-screen').style.display='flex';switchAuthTab('login')}
+}
+
+// ========= TOKEN DANS L'URL (lien de confirmation / recovery) =========
+function handleAuthHash(){
+  if(!location.hash||location.hash.indexOf('access_token=')===-1)return false;
+  try{
+    var p=new URLSearchParams(location.hash.slice(1));
+    var t=p.get('access_token');
+    if(!t)return false;
+    localStorage.setItem('fsd_order_token',t);
+    if(p.get('refresh_token'))localStorage.setItem('fsd_order_refresh',p.get('refresh_token'));
+    window._authHashType=p.get('type')||'';
+    history.replaceState(null,'',location.pathname+location.search);
+    return true;
+  }catch(e){return false}
+}
+
 // ========= SESSION CHECK =========
 async function checkSession(){
+  var fromHash=handleAuthHash();
   var token = localStorage.getItem('fsd_order_token');
   if(!token) return;
   try{
@@ -514,6 +562,8 @@ async function checkSession(){
     var user = await res.json();
     authToken = token;
     await loadClientProfile(token, user);
+    if(fromHash&&window._authHashType==='recovery'){await showApp();openAccount();return}
+    if(fromHash){showWelcome(true);return}
     showApp();
   }catch(e){localStorage.removeItem('fsd_order_token')}
 }
