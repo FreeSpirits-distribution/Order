@@ -408,7 +408,7 @@ async function doRegister(){
   if(pwd!==pwd2){err.textContent="Les mots de passe ne correspondent pas.";return}
   btn.disabled=true;btn.textContent='Inscription...';
   try{
-    var res = await fetch(SUPABASE_URL+'/auth/v1/signup',{
+    var res = await fetch(SUPABASE_URL+'/auth/v1/signup?redirect_to='+encodeURIComponent('https://freespirits-distribution.github.io/Order/'),{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY},
       body:JSON.stringify({
