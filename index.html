@@ -919,7 +919,7 @@ function addToCart(id){
   if(existing){
     existing.qty = qty;
   }else{
-    cart.push({id:p.id,ref:p.ref,name:p.name,category:p.category,vol:p.vol,tav:p.tav,pcb:p.pcb,hdht:p.hdht,droits:p.droits,css:p.css,prix_ht:p.prix_ht,pvc_ttc:p.pvc_ttc,qty:qty,dispo:p.dispo});
+    cart.push({id:p.id,ref:p.ref,name:p.name,category:p.category,vol:p.vol,tav:p.tav,pcb:p.pcb,franco_equiv_colis:p.franco_equiv_colis||null,hdht:p.hdht,droits:p.droits,css:p.css,prix_ht:p.prix_ht,pvc_ttc:p.pvc_ttc,qty:qty,dispo:p.dispo});
   }
   qtyInput.value = qty;
   updateCartCount();
@@ -957,11 +957,13 @@ function renderCart(){
   }
   var totalHT = 0;
   var totalBt = 0;
+  var totalFrancoBt = 0;
   container.innerHTML = cart.map(function(item){
     var nbBt = item.qty * item.pcb;
     var lineTotal = nbBt * item.prix_ht;
     totalHT += lineTotal;
     totalBt += nbBt;
+    totalFrancoBt += item.qty * (item.franco_equiv_colis || item.pcb);
     return '<div class="cart-item">'+
       '<div class="ci-info">'+
         '<div class="ci-name">'+esc(item.name)+'</div>'+
@@ -977,9 +979,10 @@ function renderCart(){
     '</div>';
   }).join('');
   document.getElementById('cart-total').style.display = 'flex';
-  var francoOk = totalBt >= FRANCO_BTL;
-  document.getElementById('cart-total-val').innerHTML = totalHT.toFixed(2)+' &euro; <small style="font-size:12px;font-weight:400;color:var(--gray-40)">('+totalBt+' bouteilles)</small>'+
-    '<div style="font-size:12px;font-weight:600;margin-top:4px;color:'+(francoOk?'var(--green)':'var(--orange)')+'">'+(francoOk?'&#10003; Franco atteint ('+FRANCO_BTL+' bt)':'Sous le franco ('+totalBt+'/'+FRANCO_BTL+' bt) &mdash; port en sus')+'</div>';
+  var francoOk = totalFrancoBt >= FRANCO_BTL;
+  var eqNote = (totalFrancoBt !== totalBt) ? ' &middot; '+totalFrancoBt+' &eacute;quiv. franco' : '';
+  document.getElementById('cart-total-val').innerHTML = totalHT.toFixed(2)+' &euro; <small style="font-size:12px;font-weight:400;color:var(--gray-40)">('+totalBt+' bouteilles'+eqNote+')</small>'+
+    '<div style="font-size:12px;font-weight:600;margin-top:4px;color:'+(francoOk?'var(--green)':'var(--orange)')+'">'+(francoOk?'&#10003; Franco atteint ('+FRANCO_BTL+' &eacute;quiv. bt)':'Sous le franco ('+totalFrancoBt+'/'+FRANCO_BTL+' &eacute;quiv. bt) &mdash; port en sus')+'</div>';
 }
 
 function cartQty(id,delta){
@@ -1004,11 +1007,13 @@ function submitOrder(){
   var totalHT = 0;
   var totalBtCmd = 0;
   var totalColis = 0;
+  var totalFrancoCmd = 0;
   var lines = cart.map(function(item,i){
     var nbBt = item.qty * item.pcb;
     var lt = nbBt * item.prix_ht;
     totalHT += lt;
     totalBtCmd += nbBt;
+    totalFrancoCmd += item.qty * (item.franco_equiv_colis || item.pcb);
     totalColis += item.qty;
     return (i+1)+'. '+item.name+' ('+item.category+')'+
       '\n   Réf: '+(item.ref||'-')+' | Vol: '+(item.vol||'-')+'cl | TAV: '+(item.tav||'-')+'%'+
@@ -1027,8 +1032,8 @@ function submitOrder(){
     'Total HT: '+totalHT.toFixed(2)+' €\n'+
     'Nombre de références: '+cart.length+'\n'+
     'Nombre de colis: '+totalColis+'\n'+
-    'Nombre de bouteilles: '+totalBtCmd+'\n'+
-    (totalBtCmd>=FRANCO_BTL?'Franco atteint ('+FRANCO_BTL+' bt)':'SOUS LE FRANCO ('+totalBtCmd+'/'+FRANCO_BTL+' bt) - port en sus')+'\n\n'+
+    'Nombre de bouteilles: '+totalBtCmd+(totalFrancoCmd!==totalBtCmd?' ('+totalFrancoCmd+' equiv. franco)':'')+'\n'+
+    (totalFrancoCmd>=FRANCO_BTL?'Franco atteint ('+FRANCO_BTL+' equiv. bt)':'SOUS LE FRANCO ('+totalFrancoCmd+'/'+FRANCO_BTL+' equiv. bt) - port en sus')+'\n\n'+
     (notes?'--- NOTES ---\n'+notes+'\n\n':'')+
     '---\nCommande passée via le catalogue en ligne Free Spirits Distribution';
 
