@@ -574,6 +574,7 @@ async function showApp(){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('loading-screen').style.display='flex';
   document.getElementById('client-badge').textContent = clientInfo.name;
+  await fetchFranco();
   await loadCatalog();
   loadSavedCart();
   document.getElementById('loading-screen').style.display='none';
@@ -940,6 +941,13 @@ function closeCart(e){
   document.getElementById('cart-overlay').className = 'cart-overlay';
 }
 
+var FRANCO_BTL = 36;
+async function fetchFranco(){
+  try{
+    var r = await fetch(SUPABASE_URL+'/rest/v1/app_settings?key=eq.franco_btl&select=value',{headers:{'apikey':SUPABASE_KEY}});
+    if(r.ok){var a = await r.json();if(a.length)FRANCO_BTL = parseInt(a[0].value)||36;}
+  }catch(e){}
+}
 function renderCart(){
   var container = document.getElementById('cart-items');
   if(!cart.length){
@@ -969,7 +977,9 @@ function renderCart(){
     '</div>';
   }).join('');
   document.getElementById('cart-total').style.display = 'flex';
-  document.getElementById('cart-total-val').innerHTML = totalHT.toFixed(2)+' &euro; <small style="font-size:12px;font-weight:400;color:var(--gray-40)">('+totalBt+' bouteilles)</small>';
+  var francoOk = totalBt >= FRANCO_BTL;
+  document.getElementById('cart-total-val').innerHTML = totalHT.toFixed(2)+' &euro; <small style="font-size:12px;font-weight:400;color:var(--gray-40)">('+totalBt+' bouteilles)</small>'+
+    '<div style="font-size:12px;font-weight:600;margin-top:4px;color:'+(francoOk?'var(--green)':'var(--orange)')+'">'+(francoOk?'&#10003; Franco atteint ('+FRANCO_BTL+' bt)':'Sous le franco ('+totalBt+'/'+FRANCO_BTL+' bt) &mdash; port en sus')+'</div>';
 }
 
 function cartQty(id,delta){
@@ -1017,7 +1027,8 @@ function submitOrder(){
     'Total HT: '+totalHT.toFixed(2)+' €\n'+
     'Nombre de références: '+cart.length+'\n'+
     'Nombre de colis: '+totalColis+'\n'+
-    'Nombre de bouteilles: '+totalBtCmd+'\n\n'+
+    'Nombre de bouteilles: '+totalBtCmd+'\n'+
+    (totalBtCmd>=FRANCO_BTL?'Franco atteint ('+FRANCO_BTL+' bt)':'SOUS LE FRANCO ('+totalBtCmd+'/'+FRANCO_BTL+' bt) - port en sus')+'\n\n'+
     (notes?'--- NOTES ---\n'+notes+'\n\n':'')+
     '---\nCommande passée via le catalogue en ligne Free Spirits Distribution';
 
