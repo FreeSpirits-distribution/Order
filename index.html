@@ -929,6 +929,24 @@ function addToCart(id){
 function updateCartCount(){
   var total = cart.reduce(function(s,c){return s+c.qty},0);
   document.getElementById('cart-count').textContent = total;
+  syncCartToServer();
+}
+var cartSyncTimer=null;
+function syncCartToServer(statut){
+  if(!authToken)return;
+  clearTimeout(cartSyncTimer);
+  cartSyncTimer=setTimeout(function(){
+    var uid=null;
+    try{uid=JSON.parse(atob(authToken.split('.')[1])).sub}catch(e){return}
+    if(!uid)return;
+    var totalHT=0,totalBt=0;
+    var items=cart.map(function(i){var nb=i.qty*i.pcb;totalHT+=nb*i.prix_ht;totalBt+=nb;return {name:i.name,qty:i.qty,pcb:i.pcb,prix_ht:i.prix_ht}});
+    fetch(SUPABASE_URL+'/rest/v1/paniers',{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+authToken,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({client_id:uid,updated_at:new Date().toISOString(),statut:statut||'en cours',total_ht:Math.round(totalHT*100)/100,total_btl:totalBt,items:items})
+    }).catch(function(){});
+  },1200);
 }
 
 function openCart(){
@@ -963,7 +981,8 @@ function renderCart(){
     var lineTotal = nbBt * item.prix_ht;
     totalHT += lineTotal;
     totalBt += nbBt;
-    totalFrancoBt += item.qty * (item.franco_equiv_colis || item.pcb);
+    var _cat=catalog.find(function(x){return x.id===item.id});
+    totalFrancoBt += item.qty * ((_cat&&_cat.franco_equiv_colis)||item.franco_equiv_colis||item.pcb);
     return '<div class="cart-item">'+
       '<div class="ci-info">'+
         '<div class="ci-name">'+esc(item.name)+'</div>'+
@@ -1013,7 +1032,8 @@ function submitOrder(){
     var lt = nbBt * item.prix_ht;
     totalHT += lt;
     totalBtCmd += nbBt;
-    totalFrancoCmd += item.qty * (item.franco_equiv_colis || item.pcb);
+    var _catF=catalog.find(function(x){return x.id===item.id});
+    totalFrancoCmd += item.qty * ((_catF&&_catF.franco_equiv_colis)||item.franco_equiv_colis||item.pcb);
     totalColis += item.qty;
     return (i+1)+'. '+item.name+' ('+item.category+')'+
       '\n   Réf: '+(item.ref||'-')+' | Vol: '+(item.vol||'-')+'cl | TAV: '+(item.tav||'-')+'%'+
@@ -1042,6 +1062,7 @@ function submitOrder(){
     '&body='+encodeURIComponent(body)+
     '&cc='+encodeURIComponent(clientInfo.email);
 
+  syncCartToServer('commande envoyée');
   window.location.href = mailto;
 
   clearSavedCart();
